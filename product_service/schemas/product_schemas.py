@@ -1,99 +1,93 @@
-# product_service/schemas/product_schemas.py
-from typing import Optional, List
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ProductImageOut(BaseModel):
-    id: int
-    imageUrl: str = Field(alias="image_url")
-    isMain: bool = Field(alias="is_main")
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    id: int
+    image_url: str = Field(alias="imageUrl")
+    is_main: bool = Field(alias="isMain")
+    sort_order: int = Field(alias="sortOrder")
 
 
 class ProductListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: int
     sku: str
     name: str
     slug: str
     price: float
-    stockQty: int = Field(alias="stock_qty")
-    isActive: bool = Field(alias="is_active")
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    stock_quantity: int = Field(alias="stockQty")
+    is_active: bool = Field(alias="isActive")
 
 
 class ProductListResponse(BaseModel):
-    items: List[ProductListItem]
+    items: list[ProductListItem]
     page: int
     size: int
     total: int
 
 
 class ProductDetail(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: int
-    categoryId: int = Field(alias="category_id")
+    category_id: int = Field(alias="categoryId")
     sku: str
     name: str
     slug: str
     description: str
     price: float
-    stockQty: int = Field(alias="stock_qty")
+    stock_quantity: int = Field(alias="stockQty")
     wattage: int
     voltage: int
-    baseType: str = Field(alias="base_type")
-    colorTemperature: int = Field(alias="color_temperature")
-    isActive: bool = Field(alias="is_active")
-    images: List[ProductImageOut]
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    base_type: str = Field(alias="baseType")
+    color_temperature: int = Field(alias="colorTemperature")
+    is_active: bool = Field(alias="isActive")
+    images: list[ProductImageOut] = []
 
 
 class ProductCreateImage(BaseModel):
-    imageUrl: str
-    sortOrder: int = 0
-    isMain: bool = True
+    image_url: str
+    sort_order: int = 0
+    is_main: bool = True
 
 
 class ProductCreate(BaseModel):
-    categoryId: int
+    category_id: int
     sku: str
     name: str
     slug: str
     description: str
     price: float
-    stockQty: int
+    stock_quantity: int
     wattage: int
     voltage: int
-    baseType: str
-    colorTemperature: int
-    isActive: bool = True
-    images: Optional[List[ProductCreateImage]] = None
+    base_type: str
+    color_temperature: int
+    is_active: bool = True
+    images: Optional[list[ProductCreateImage]] = None
 
 
 class ProductUpdate(BaseModel):
-    categoryId: int
+    category_id: int
     sku: str
     name: str
     slug: str
     description: str
     price: float
-    stockQty: int
+    stock_quantity: int
     wattage: int
     voltage: int
-    baseType: str
-    colorTemperature: int
-    isActive: bool
+    base_type: str
+    color_temperature: int
+    is_active: bool
 
 
 class ProductStatusUpdate(BaseModel):
-    isActive: bool
+    is_active: bool
 
 
 class ProductMutationResponse(BaseModel):
@@ -102,25 +96,23 @@ class ProductMutationResponse(BaseModel):
 
 
 class CategoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: int
     name: str
     slug: str
-    isActive: bool = Field(alias="is_active")
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    is_active: bool = Field(alias="isActive")
 
 
 class CategoryCreate(BaseModel):
     name: str
     slug: str
     description: Optional[str] = None
-    isActive: bool = True
+    is_active: bool = True
 
 
 class CategoryUpdate(BaseModel):
     name: str
     slug: str
     description: Optional[str] = None
-    isActive: bool
+    is_active: bool

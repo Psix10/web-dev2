@@ -72,3 +72,35 @@ class AdminRead(BaseModel):
 
 class MeResponse(AdminRead):
     pass
+
+
+
+class PermissionCreate(BaseModel):
+    code: str
+    description: str | None = None
+
+
+class PermissionRead(BaseModel):
+    id: int
+    code: str
+    description: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class RoleCreate(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class RoleUpdate(BaseModel):
+    name: str
+    description: str | None = None
+
+class RoleRead(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    permissions: list[PermissionRead] = []
+
+    model_config = ConfigDict(from_attributes=True)

@@ -1,10 +1,8 @@
 import sqlalchemy as sa
 from sqlalchemy import BigInteger, String, Text, ForeignKey, DateTime, Boolean, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-class Base(DeclarativeBase):
-    pass
+from db.db import Base
 
 
 class Role(Base):
@@ -43,13 +41,13 @@ class Admin(Base):
     )
 
     created_at: Mapped[sa.DateTime] = mapped_column(
-        DateTime(timezone=False),
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
 
     updated_at: Mapped[sa.DateTime] = mapped_column(
-        DateTime(timezone=False),
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
@@ -100,11 +98,17 @@ class AdminSession(Base):
         nullable=False,
     )
     refresh_token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    expires_at: Mapped[sa.DateTime] = mapped_column(DateTime(timezone=False), nullable=False)
+    expires_at: Mapped[sa.DateTime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[sa.DateTime] = mapped_column(
-        DateTime(timezone=False),
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
+    revoked_at: Mapped[sa.DateTime | None] = mapped_column(
+    DateTime(timezone=True),
+    nullable=True,
+    )
 
     admin: Mapped["Admin"] = relationship(back_populates="sessions")
+
+

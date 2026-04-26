@@ -6,10 +6,9 @@ from typing import Annotated
 
 import sqlalchemy as sa
 from sqlalchemy import BigInteger, String, DateTime, ForeignKey, Boolean, func, Text, Numeric, Integer, Index
-from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-class Base(DeclarativeBase):
-    pass
+from db.db import Base
 
 big_int_pk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
 

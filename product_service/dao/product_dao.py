@@ -1,16 +1,16 @@
-# product_service/dao/products_dao.py
-from typing import Sequence, Optional, Tuple
-from sqlalchemy.orm import Session
+from typing import Optional
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from product_service.models.product_models import Product, Category, ProductImage
+from models.product_models import Product, ProductImage
 
 
 class ProductsDAO:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
-    def list_products(
+    async def list_products(
         self,
         *,
         category_id: Optional[int],
@@ -21,8 +21,12 @@ class ProductsDAO:
         color_temperature: Optional[int],
         page: int,
         size: int,
-    ) -> Tuple[Sequence[Product], int]:
-        stmt = select(Product).where(Product.is_active.is_(True))
+    ) -> tuple[list[Product], int]:
+        stmt = (
+            select(Product)
+            .where(Product.is_active.is_(True))
+            .options(selectinload(Product.images))
+        )
 
         if category_id is not None:
             stmt = stmt.where(Product.category_id == category_id)
@@ -37,69 +41,79 @@ class ProductsDAO:
         if color_temperature is not None:
             stmt = stmt.where(Product.color_temperature == color_temperature)
 
-        total = self.session.scalar(
-            select(func.count()).select_from(stmt.subquery())
-        ) or 0
+        total_stmt = select(func.count()).select_from(stmt.subquery())
+        total = await self.session.scalar(total_stmt) or 0
 
         stmt = stmt.offset((page - 1) * size).limit(size)
-        items = self.session.scalars(stmt).all()
+        result = await self.session.scalars(stmt)
+        items = list(result.all())
         return items, total
 
-    def get_by_id(self, product_id: int) -> Optional[Product]:
-        return self.session.get(Product, product_id)
+    async def get_by_id(self, product_id: int) -> Optional[Product]:
+        stmt = (
+            select(Product)
+            .where(Product.id == product_id)
+            .options(selectinload(Product.images))
+        )
+        return await self.session.scalar(stmt)
 
-    def get_by_slug(self, slug: str) -> Optional[Product]:
-        stmt = select(Product).where(Product.slug == slug)
-        return self.session.scalar(stmt)
+    async def get_by_slug(self, slug: str) -> Optional[Product]:
+        stmt = (
+            select(Product)
+            .where(Product.slug == slug)
+            .options(selectinload(Product.images))
+        )
+        return await self.session.scalar(stmt)
 
-    def create_product(self, data) -> Product:
+    async def create_product(self, data) -> Product:
         product = Product(
-            category_id=data.categoryId,
+            category_id=data.category_id,
             sku=data.sku,
             name=data.name,
             slug=data.slug,
             description=data.description,
             price=data.price,
-            stock_qty=data.stockQty,
+            stock_quantity=data.stock_quantity,
             wattage=data.wattage,
             voltage=data.voltage,
-            base_type=data.baseType,
-            color_temperature=data.colorTemperature,
-            is_active=data.isActive,
+            base_type=data.base_type,
+            color_temperature=data.color_temperature,
+            is_active=data.is_active,
         )
         self.session.add(product)
-        self.session.flush()
+        await self.session.flush()
 
         if data.images:
             for img in data.images:
                 self.session.add(
                     ProductImage(
                         product_id=product.id,
-                        image_url=img.imageUrl,
-                        sort_order=img.sortOrder,
-                        is_main=img.isMain,
+                        image_url=img.image_url,
+                        sort_order=img.sort_order,
+                        is_main=img.is_main,
                     )
                 )
 
+        await self.session.flush()
         return product
 
-    def update_product(self, product: Product, data) -> Product:
-        product.category_id = data.categoryId
+    async def update_product(self, product: Product, data) -> Product:
+        product.category_id = data.category_id
         product.sku = data.sku
         product.name = data.name
         product.slug = data.slug
         product.description = data.description
         product.price = data.price
-        product.stock_qty = data.stockQty
+        product.stock_quantity = data.stock_quantity
         product.wattage = data.wattage
         product.voltage = data.voltage
-        product.base_type = data.baseType
-        product.color_temperature = data.colorTemperature
-        product.is_active = data.isActive
+        product.base_type = data.base_type
+        product.color_temperature = data.color_temperature
+        product.is_active = data.is_active
+        await self.session.flush()
         return product
 
-    def set_status(self, product: Product, is_active: bool) -> Product:
+    async def set_status(self, product: Product, is_active: bool) -> Product:
         product.is_active = is_active
+        await self.session.flush()
         return product
-
-    # аналогично методы для Category

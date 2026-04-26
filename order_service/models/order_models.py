@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Annotated
 
 import sqlalchemy as sa
+from sqlalchemy import SMALLINT, Boolean
 from sqlalchemy import (
     BigInteger,
     String,
@@ -19,17 +20,17 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from order_service.db.db import Base
+from db.db import Base
 
 
 big_int_pk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
 
 
 class OrderStatus(str, Enum):
-    NEW = "new"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    NEW = 'NEW'
+    PROCESSING = 'PROCESSING'
+    COMPLETED = 'COMPLETED'
+    CANCELLED = 'CANCELLED'
 
 
 class Cart(Base):
@@ -37,9 +38,11 @@ class Cart(Base):
 
     id: Mapped[big_int_pk]
     session_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     customer_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     customer_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, server_default="0.00")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
@@ -77,6 +80,7 @@ class Order(Base):
     )
 
     id: Mapped[big_int_pk]
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)    
     order_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
     customer_phone: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -100,6 +104,7 @@ class Order(Base):
         cascade="all, delete-orphan",
     )
 
+    user = relationship("User")
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -114,6 +119,44 @@ class OrderItem(Base):
     product_name_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
     price_snapshot: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    line_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
     order: Mapped["Order"] = relationship(back_populates="items")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=sa.true(),
+    )
+
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=sa.false(),
+    )
+
+    role_id: Mapped[int] = mapped_column(SMALLINT, nullable=True)
+
+    created_at: Mapped[sa.DateTime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    updated_at: Mapped[sa.DateTime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
