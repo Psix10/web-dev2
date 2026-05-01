@@ -1,0 +1,50 @@
+.adminLayout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  background-color: #f5f7fb;
+}
+
+.contentArea {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  min-height: 88px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  background-color: #ffffff;
+}
+
+.pageTitle {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mainContent {
+  padding: 32px;
+}
+
+@media (max-width: 900px) {
+  .adminLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    min-height: 72px;
+    padding: 0 20px;
+  }
+
+  .pageTitle {
+    font-size: 24px;
+  }
+
+  .mainContent {
+    padding: 20px;
+  }
+}

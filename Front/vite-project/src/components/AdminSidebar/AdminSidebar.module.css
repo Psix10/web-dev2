@@ -1,0 +1,107 @@
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background-color: #111827;
+  color: #ffffff;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  margin-bottom: 32px;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.logout {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.logout:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.adminName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.shopLink {
+  font-size: 14px;
+  color: #93c5fd;
+  transition: var(--transition);
+}
+
+.shopLink:hover {
+  color: #bfdbfe;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    border-radius: 0 0 20px 20px;
+  }
+}

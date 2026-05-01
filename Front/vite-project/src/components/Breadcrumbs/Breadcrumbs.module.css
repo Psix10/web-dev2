@@ -1,0 +1,37 @@
+.breadcrumbs {
+  margin-bottom: var(--space-4);
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  transition: var(--transition);
+}
+
+.link:hover {
+  color: var(--color-primary);
+}
+
+.current {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.separator {
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+}

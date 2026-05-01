@@ -1,0 +1,58 @@
+import lampImage from "../assets/lamp.png";
+
+export const products = [
+    {
+        id: 1,
+        sku: "LED-A60-9W-E27",
+        name: "LED Лампа A60 Econom",
+        description: "Стандартная светодиодная лампа формата А60...",
+        price: 89,
+        image: lampImage,
+        category: "Светодиодные лампы",
+    },
+    {
+        id: 2,
+        sku: "LED-GU10-7W",
+        name: "LED Лампа GU10 Spot 7W",
+        description: "Светодиодная лампа направленного света...",
+        price: 129,
+        image: lampImage,
+        category: "Светодиодные лампы",
+    },
+    {
+        id: 3,
+        sku: "FL-COMP-20W",
+        name: "Люминесцентная лампа Compact 20W",
+        description: "Компактная люминесцентная лампа для бытового освещения.",
+        price: 159,
+        image: lampImage,
+        category: "Люминесцентные",
+    },
+    {
+        id: 4,
+        sku: "HALO-G9-42W",
+        name: "Галогенная лампа G9 42W",
+        description: "Яркий теплый свет для точечных светильников.",
+        price: 119,
+        image: lampImage,
+        category: "Галогенные",
+    },
+    {
+        id: 5,
+        sku: "SMART-E27-RGB",
+        name: "Умная лампа E27 RGB",
+        description: "Управление цветом и яркостью через приложение.",
+        price: 599,
+        image: lampImage,
+        category: "Умные лампы",
+    },
+    {
+        id: 6,
+        sku: "IND-HIGHBAY-100W",
+        name: "Промышленная лампа HighBay 100W",
+        description: "Для складов, цехов и промышленных помещений.",
+        price: 1499,
+        image: lampImage,
+        category: "Промышленные",
+    },
+];
