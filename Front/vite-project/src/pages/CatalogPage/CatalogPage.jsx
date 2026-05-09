@@ -4,25 +4,47 @@ import StoreLayout from "../../layouts/StoreLayout";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import ProductCard from "../../components/ProductCard/ProductCard";
 import style from "./CatalogPage.module.css";
-import lampImage from "../../assets/lamp.png";
-import { products } from "../../data/products";
-
-const categories = [
-  "Все категории",
-  "Светодиодные лампы",
-  "Люминесцентные",
-  "Галогенные",
-  "Умные лампы",
-  "Промышленные",
-];
-
+import { getProducts, getCategories } from "../../api/product";
 
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get("category");
 
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState(["Все категории"]);
   const [selectedCategory, setSelectedCategory] = useState("Все категории");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchCatalogData = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          getProducts(),
+          getCategories(),
+        ]);
+
+        setProducts(productsData.items || []);
+        setCategories([
+          "Все категории",
+          ...(categoriesData || []).map((category) => category.name),
+        ]);
+      } catch (err) {
+        console.error("Failed to load catalog data:", err);
+        setError(err.message || "Не удалось загрузить каталог");
+        setProducts([]);
+        setCategories(["Все категории"]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCatalogData();
+  }, []);
 
   useEffect(() => {
     if (categoryFromUrl && categories.includes(categoryFromUrl)) {
@@ -30,7 +52,7 @@ export default function CatalogPage() {
     } else {
       setSelectedCategory("Все категории");
     }
-  }, [categoryFromUrl]);
+  }, [categoryFromUrl, categories]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
@@ -52,13 +74,13 @@ export default function CatalogPage() {
         selectedCategory === "Все категории" ||
         product.category === selectedCategory;
 
-      const matchesSearch = product.name
+      const matchesSearch = (product.name || "")
         .toLowerCase()
         .includes(search.toLowerCase());
 
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, search]);
+  }, [products, selectedCategory, search]);
 
   return (
     <StoreLayout>
@@ -115,16 +137,24 @@ export default function CatalogPage() {
                 />
               </div>
 
-              <p className={style.count}>
-                Найдено товаров: {filteredProducts.length}
-              </p>
+              {loading ? (
+                <p className={style.count}>Загрузка товаров...</p>
+              ) : error ? (
+                <p className={style.count}>{error}</p>
+              ) : (
+                <p className={style.count}>
+                  Найдено товаров: {filteredProducts.length}
+                </p>
+              )}
 
               <div className={style.grid}>
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className={style.cardWrap}>
-                    <ProductCard product={product} />
-                  </div>
-                ))}
+                {!loading &&
+                  !error &&
+                  filteredProducts.map((product) => (
+                    <div key={product.id} className={style.cardWrap}>
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
               </div>
             </div>
           </div>

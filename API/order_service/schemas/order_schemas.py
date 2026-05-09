@@ -112,7 +112,9 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     session_id: str = Field(alias="sessionId")
-
+    address_id: int | None = Field(default=None, alias="addressId")
+    items: list[OrderItemCreate]
+    
     model_config = ConfigDict(populate_by_name=True)
 
 

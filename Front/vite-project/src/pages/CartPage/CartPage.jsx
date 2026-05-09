@@ -17,7 +17,7 @@ export default function CartPage() {
 
   const isEmpty = items.length === 0;
   const navigate = useNavigate();
-
+  
   return (
     <StoreLayout>
       <section className={style.cart}>

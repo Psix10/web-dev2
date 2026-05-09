@@ -4,9 +4,18 @@ import style from "./Header.module.css";
 import logo from "../../assets/logo.png";
 import buy from "../../assets/buy.png";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Header() {
   const { totalItems } = useCart();
+  const { isAuthenticated, loading } = useAuth();
+
+  const accountPath = isAuthenticated ? "/account" : "/login";
+  const accountLabel = loading
+    ? "..."
+    : isAuthenticated
+    ? "Личный кабинет"
+    : "Войти";
 
   return (
     <header className={style.header}>
@@ -32,6 +41,15 @@ export default function Header() {
             }
           >
             Каталог
+          </NavLink>
+
+          <NavLink
+            to={accountPath}
+            className={({ isActive }) =>
+              isActive ? `${style.link} ${style.active}` : style.link
+            }
+          >
+            {accountLabel}
           </NavLink>
         </nav>
 

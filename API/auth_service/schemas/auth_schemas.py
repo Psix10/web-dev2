@@ -88,3 +88,13 @@ class PasswordResetRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+
+class UserProfileUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    phone: str | None = None
+
+    class Config:
+        from_attributes = True

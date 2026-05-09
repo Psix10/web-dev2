@@ -216,3 +216,19 @@ class AuthService:
             )
 
         return user
+    
+    async def update_user_profile(self, user_id: int, payload):
+        user = await self.dao.update_user_profile(
+            user_id=user_id,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            phone=payload.phone,
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        return user

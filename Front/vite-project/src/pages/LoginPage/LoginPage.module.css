@@ -1,0 +1,122 @@
+.loginPage {
+    padding: 32px 0 72px;
+}
+
+.wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    }
+
+.card {
+    width: 100%;
+    max-width: 520px;
+    padding: 32px;
+}
+
+.header {
+    margin-bottom: 28px;
+}
+
+.title {
+    margin: 0 0 10px;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.1;
+    color: var(--color-text);
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.labelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.inlineLink {
+    font-size: 13px;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.inlineLink:hover {
+    text-decoration: underline;
+}
+
+.submitButton {
+    margin-top: 6px;
+    width: 100%;
+}
+
+.error {
+    margin: 0;
+    font-size: 14px;
+    color: #c62828;
+}
+
+.footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.footerText {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.registerLink {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.registerLink:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .loginPage {
+        padding: 20px 0 56px;
+    }
+
+    .card {
+        padding: 24px;
+    }
+
+    .footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

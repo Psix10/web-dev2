@@ -80,7 +80,7 @@ class Order(Base):
     )
 
     id: Mapped[big_int_pk]
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)    
+    user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
     order_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
     customer_phone: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -104,8 +104,6 @@ class Order(Base):
         cascade="all, delete-orphan",
     )
 
-    user = relationship("User")
-
 class OrderItem(Base):
     __tablename__ = "order_items"
 
@@ -121,42 +119,3 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
 
     order: Mapped["Order"] = relationship(back_populates="items")
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-
-    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        server_default=sa.true(),
-    )
-
-    is_verified: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        server_default=sa.false(),
-    )
-
-    role_id: Mapped[int] = mapped_column(SMALLINT, nullable=True)
-
-    created_at: Mapped[sa.DateTime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
-    updated_at: Mapped[sa.DateTime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )

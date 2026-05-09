@@ -1,54 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import StoreLayout from "../../layouts/StoreLayout";
 import ProductCard from "../../components/ProductCard/ProductCard";
 import style from "./HomePage.module.css";
-import lampImage from "../../assets/lamp.png";
-
-const categories = [
-  "Светодиодные лампы",
-  "Люминесцентные",
-  "Галогенные",
-  "Умные лампы",
-  "Промышленные",
-];
-
-const popularProducts = [
-  {
-    id: 1,
-    sku: "LED-A60-9W-E27",
-    name: "LED Лампа A60 Econom",
-    price: 89,
-    image: lampImage,
-    description: "Стандартная светодиодная лампа формата А60...",
-  },
-  {
-    id: 2,
-    sku: "LED-GU10-7W",
-    name: "LED Лампа GU10 Spot 7W",
-    price: 129,
-    image: lampImage,
-    description: "Светодиодная лампа направленного света...",
-  },
-  {
-    id: 3,
-    sku: "LED-T8-18W-1200",
-    name: "LED Трубка T8 18W 1200мм",
-    price: 249,
-    image: lampImage,
-    description: "Светодиодная лампа в форм‑факторе трубки T8...",
-  },
-  {
-    id: 4,
-    sku: "PHILIPS-12W-E27",
-    name: "Philips Master LEDlamp 12W",
-    price: 349,
-    image: lampImage,
-    description: "Надежная LED‑лампа для повседневного освещения.",
-  },
-];
+import { getProducts, getCategories } from "../../api/product";
 
 export default function HomePage() {
+  const [categories, setCategories] = useState([]);
+  const [popularProducts, setPopularProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          getProducts(),
+          getCategories(),
+        ]);
+
+        setCategories((categoriesData || []).map((category) => category.name));
+        setPopularProducts((productsData.items || []).slice(0, 4));
+      } catch (err) {
+        console.error("Failed to load home page data:", err);
+        setError(err.message || "Не удалось загрузить данные главной страницы");
+        setCategories([]);
+        setPopularProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
+  }, []);
+
   return (
     <StoreLayout>
       <section className={style.hero}>
@@ -72,11 +60,17 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className={style.grid}>
-            {popularProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <p>Загрузка товаров...</p>
+          ) : error ? (
+            <p>{error}</p>
+          ) : (
+            <div className={style.grid}>
+              {popularProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </StoreLayout>

@@ -15,9 +15,7 @@ class AuthDAO:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    # --------------------
     # Users
-    # --------------------
 
     async def get_user_by_id(self, user_id: int) -> User | None:
         result = await self.session.execute(
@@ -90,9 +88,7 @@ class AuthDAO:
         )
         await self.session.commit()
 
-    # --------------------
     # Sessions
-    # --------------------
 
     async def create_session(
         self,
@@ -144,9 +140,7 @@ class AuthDAO:
         )
         await self.session.commit()
 
-    # --------------------
     # Email verification
-    # --------------------
 
     async def create_email_verification(
         self,
@@ -183,9 +177,7 @@ class AuthDAO:
         )
         await self.session.commit()
 
-    # --------------------
     # Password reset
-    # --------------------
 
     async def create_password_reset_token(
         self,
@@ -221,3 +213,26 @@ class AuthDAO:
             .values(used_at=used_at)
         )
         await self.session.commit()
+    
+    async def update_user_profile(
+        self,
+        user_id: int,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        phone: str | None = None,
+    ) -> User | None:
+
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return None
+
+        if first_name is not None:
+            user.first_name = first_name
+        if last_name is not None:
+            user.last_name = last_name
+        if phone is not None:
+            user.phone = phone
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user

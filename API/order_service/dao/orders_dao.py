@@ -1,3 +1,5 @@
+import random
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -6,9 +8,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.order_models import Cart, User, CartItem, Order, OrderItem, OrderStatus
+from models.order_models import Cart, CartItem, Order, OrderItem, OrderStatus
 from schemas.order_schemas import CartItemCreate, CartItemUpdate, OrderCreate
-
+from models.address_models import UserAddress
 
 PRODUCT_SERVICE_URL = "http://product_service:8001/api/products"
 
@@ -63,7 +65,7 @@ class OrdersDAO:
             return None
 
         return {
-            "name": user.first_name + " " + user.last_name,
+            "name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
             "phone": user.phone,      
             "email": user.email,      
         }
@@ -149,64 +151,43 @@ class OrdersDAO:
             await self.session.refresh(cart, ["items"])
             await self._refresh_cart_total(cart)
 
-    async def create_order_from_cart(
-    self,
-    payload: OrderCreate,
-    user_id: int | None = None,
-    ) -> Order:
-        cart = await self.get_cart_by_session_id(payload.session_id)
-        if not cart or not cart.items:
-            raise ValueError("Cart is empty or not found")
 
-        total_amount = self._calculate_cart_total(cart)
+    async def create_order_from_cart(self, payload: OrderCreate, user_id: int | None = None):
+        if not payload.items:
+            raise ValueError("Order must contain at least one item")
 
-        customer_name = payload.customer_name
-        customer_phone = payload.customer_phone
-        customer_email = payload.customer_email
-
-        if user_id is not None:
-            profile = await self._get_user_profile(user_id)
-            if not profile:
-                raise ValueError("User profile not found")
-
-            customer_name = profile.get("name")
-            customer_phone = profile.get("phone")
-            customer_email = profile.get("email")
-
-        if not customer_name or not customer_phone or not customer_email:
-            raise ValueError("Customer data is incomplete")
+        total = sum(
+            item.price_snapshot * item.quantity
+            for item in payload.items
+        )
 
         order = Order(
             order_number=self._generate_order_number(),
-            user_id=user_id,
-            customer_name=customer_name,
-            customer_phone=customer_phone,
-            customer_email=customer_email,
+            customer_name=payload.customer_name,
+            customer_phone=payload.customer_phone,
+            customer_email=payload.customer_email,
             delivery_address=payload.delivery_address,
             comment=payload.comment,
-            total_amount=total_amount,
+            user_id=user_id,
+            total_amount=total,
             status=OrderStatus.NEW,
         )
+
         self.session.add(order)
         await self.session.flush()
 
-        for item in cart.items:
-            self.session.add(
-                OrderItem(
-                    order_id=order.id,
-                    product_id=item.product_id,
-                    product_name_snapshot=item.product_name_snapshot,
-                    price_snapshot=item.price_snapshot,
-                    quantity=item.quantity,
-                )
+        for item_data in payload.items:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item_data.product_id,
+                product_name_snapshot=item_data.product_name_snapshot,
+                price_snapshot=item_data.price_snapshot,
+                quantity=item_data.quantity,
             )
+            self.session.add(order_item)
 
-        for item in list(cart.items):
-            await self.session.delete(item)
-
-        cart.total_amount = Decimal("0.00")
         await self.session.flush()
-
+        await self.session.refresh(order)
         return order
 
     async def get_order_by_id(self, order_id: int) -> Order | None:
@@ -229,3 +210,22 @@ class OrdersDAO:
         order.status = status
         await self.session.flush()
         return order
+    
+    async def _get_user_address(self, user_id: int, address_id: int) -> UserAddress | None:
+        result = await self.session.execute(
+            select(UserAddress).where(
+                UserAddress.id == address_id,
+                UserAddress.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+    
+    async def list_orders_by_user_id(self, user_id: int) -> list[Order]:
+        stmt = (
+            select(Order)
+            .where(Order.user_id == user_id)
+            .options(selectinload(Order.items))
+            .order_by(Order.created_at.desc())
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())

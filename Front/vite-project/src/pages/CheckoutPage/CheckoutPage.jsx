@@ -1,19 +1,76 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import StoreLayout from "../../layouts/StoreLayout";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
 import style from "./CheckoutPage.module.css";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
+import { getUserAddresses } from "../../api/address";
+import { createOrder } from "../../api/order";
 
 export default function CheckoutPage() {
-  const { items, totalPrice } = useCart();
+  const navigate = useNavigate();
+  const { items, totalPrice, sessionId, clearCart } = useCart();
+  const { user, tokens, isAuthenticated } = useAuth();
 
   const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
+    name: user?.name || "",
+    phone: user?.phone || "",
+    email: user?.email || "",
     address: "",
     comment: "",
   });
+
+  const [addresses, setAddresses] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [useSavedAddress, setUseSavedAddress] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const selectedAddress = addresses.find(
+  (address) => address.id === selectedAddressId);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      name: user?.name || "",
+      phone: user?.phone || "",
+      email: user?.email || "",
+    }));
+  }, [user]);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!isAuthenticated || !tokens?.access_token) {
+        setUseSavedAddress(false);
+        return;
+      }
+
+      setAddressesLoading(true);
+
+      try {
+        const data = await getUserAddresses(tokens.access_token);
+        const list = data || [];
+        setAddresses(list);
+
+        if (list.length > 0) {
+          const defaultAddress = list.find((item) => item.isDefault) || list[0];
+          setSelectedAddressId(defaultAddress.id);
+          setUseSavedAddress(true);
+        } else {
+          setUseSavedAddress(false);
+        }
+      } catch (error) {
+        console.error("Failed to load addresses:", error);
+        setAddresses([]);
+        setUseSavedAddress(false);
+      } finally {
+        setAddressesLoading(false);
+      }
+    };
+
+    fetchAddresses();
+  }, [isAuthenticated, tokens?.access_token]);
 
   const handleChange = (field) => (event) => {
     let value = event.target.value;
@@ -25,9 +82,76 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log("order data:", form, items); // Здесь будет логика отправки данных на сервер и очистки корзины
+
+    if (!sessionId) {
+      setSubmitError("Не найдена сессия корзины");
+      return;
+    }
+
+    if (items.length === 0) {
+      setSubmitError("Корзина пуста");
+      return;
+    }
+
+    if (!form.name || !form.phone || !form.email) {
+      setSubmitError("Заполните данные покупателя");
+      return;
+    }
+
+    if (!useSavedAddress && !form.address.trim()) {
+      setSubmitError("Укажите адрес доставки");
+      return;
+    }
+
+    if (useSavedAddress && !selectedAddressId) {
+      setSubmitError("Выберите сохранённый адрес");
+      return;
+    }
+    console.log("CART ITEMS:", items);
+    const payload = {
+      sessionId,
+      customerName: form.name,
+      customerPhone: form.phone,
+      customerEmail: form.email,
+      comment: form.comment || null,
+      addressId: useSavedAddress ? selectedAddressId : null,
+      deliveryAddress: useSavedAddress
+        ? selectedAddress?.fullAddress || ""
+        : form.address,
+      items: items.map((item) => ({
+        productId: item.productId ?? item.id,
+        productNameSnapshot: item.name,
+        priceSnapshot: item.price,
+        quantity: item.quantity,
+      })),
+    };
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const result = await createOrder(
+        payload,
+        isAuthenticated ? tokens?.access_token : null
+      );
+
+      if (clearCart) {
+        clearCart();
+      }
+
+      navigate("/account", {
+        state: {
+          orderCreated: true,
+          orderNumber: result.orderNumber,
+        },
+      });
+    } catch (error) {
+      setSubmitError(error.message || "Не удалось оформить заказ");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -75,8 +199,6 @@ export default function CheckoutPage() {
                         value={form.phone}
                         onChange={handleChange("phone")}
                         placeholder="+7 (999) 000-00-00"
-                        pattern="\+7\s?\(?\d{3}\)?\s?\d{3}-?\d{2}-?\d{2}"
-                        title="Формат номера: +7 (999) 123-45-67"
                         required
                       />
                     </div>
@@ -94,17 +216,74 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  <div className={style.field}>
-                    <label className={style.label}>Адрес доставки *</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={form.address}
-                      onChange={handleChange("address")}
-                      placeholder="Город, улица, дом, квартира"
-                      required
-                    />
-                  </div>
+                  {isAuthenticated && addresses.length > 0 && (
+                    <div className={style.field}>
+                      <label className={style.label}>Адрес доставки *</label>
+
+                      <div className={style.addressModeSwitch}>
+                        <label>
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            checked={useSavedAddress}
+                            onChange={() => setUseSavedAddress(true)}
+                          />
+                          Выбрать сохранённый адрес
+                        </label>
+
+                        <label>
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            checked={!useSavedAddress}
+                            onChange={() => setUseSavedAddress(false)}
+                          />
+                          Ввести адрес вручную
+                        </label>
+                      </div>
+
+                      {addressesLoading ? (
+                        <p className={style.helperText}>Загрузка адресов...</p>
+                      ) : useSavedAddress ? (
+                        <select
+                          className="input"
+                          value={selectedAddressId ?? ""}
+                          onChange={(e) => setSelectedAddressId(Number(e.target.value))}
+                          required
+                        >
+                          {addresses.map((address) => (
+                            <option key={address.id} value={address.id}>
+                              {address.label ? `${address.label} — ` : ""}
+                              {address.fullAddress}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          className="input"
+                          value={form.address}
+                          onChange={handleChange("address")}
+                          placeholder="Город, улица, дом, квартира"
+                          required={!useSavedAddress}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {(!isAuthenticated || addresses.length === 0) && (
+                    <div className={style.field}>
+                      <label className={style.label}>Адрес доставки *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={form.address}
+                        onChange={handleChange("address")}
+                        placeholder="Город, улица, дом, квартира"
+                        required
+                      />
+                    </div>
+                  )}
 
                   <div className={style.field}>
                     <label className={style.label}>Комментарий к заказу</label>
@@ -115,6 +294,10 @@ export default function CheckoutPage() {
                       placeholder="Дополнительные пожелания..."
                     />
                   </div>
+
+                  {submitError && (
+                    <p className={style.errorText}>{submitError}</p>
+                  )}
                 </form>
               </div>
             </div>
@@ -152,8 +335,9 @@ export default function CheckoutPage() {
                       type="submit"
                       form="checkout-form"
                       className={`btn btnPrimary ${style.submitButton}`}
+                      disabled={submitting}
                     >
-                      Подтвердить заказ
+                      {submitting ? "Оформляем..." : "Подтвердить заказ"}
                     </button>
 
                     <p className={style.policyText}>

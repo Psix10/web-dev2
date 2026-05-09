@@ -23,7 +23,7 @@ from schemas.product_schemas import (
 router = APIRouter(prefix="/api", tags=["products"])
 
 
-@router.get("/products", response_model=ProductListResponse)
+@router.get("/products", response_model=ProductListResponse, response_model_by_alias=True)
 async def get_products(
     category: int | None = Query(None),
     min_price: float | None = Query(None),
@@ -36,7 +36,7 @@ async def get_products(
     session: AsyncSession = Depends(get_session),
 ):
     dao = ProductsDAO(session)
-    items, total = await dao.list_products(
+    products, total = await dao.list_products(
         category_id=category,
         min_price=min_price,
         max_price=max_price,
@@ -46,13 +46,34 @@ async def get_products(
         page=page,
         size=size,
     )
+
+    items = []
+    for product in products:
+        category_name = product.category.name if product.category else None
+
+        main_image = next(
+            (image for image in product.images if image.is_main),
+            product.images[0] if product.images else None,
+        )
+
+        items.append({
+            "id": product.id,
+            "sku": product.sku,
+            "name": product.name,
+            "slug": product.slug,
+            "price": float(product.price),
+            "stockQty": product.stock_quantity,
+            "isActive": product.is_active,
+            "category": category_name,
+            "imageUrl": main_image.image_url if main_image else None,
+        })
+
     return {
         "items": items,
         "page": page,
         "size": size,
         "total": total,
     }
-
 
 @router.get("/products/{product_id}", response_model=ProductDetail, response_model_by_alias=True)
 async def get_product_by_id(

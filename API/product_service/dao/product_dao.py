@@ -24,8 +24,11 @@ class ProductsDAO:
     ) -> tuple[list[Product], int]:
         stmt = (
             select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.images),
+            )            
             .where(Product.is_active.is_(True))
-            .options(selectinload(Product.images))
         )
 
         if category_id is not None:

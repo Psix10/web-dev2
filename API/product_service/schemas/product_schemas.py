@@ -21,6 +21,8 @@ class ProductListItem(BaseModel):
     price: float
     stock_quantity: int = Field(alias="stockQty")
     is_active: bool = Field(alias="isActive")
+    category: str | None = None
+    image_url: str | None = Field(default=None, alias="imageUrl")
 
 
 class ProductListResponse(BaseModel):

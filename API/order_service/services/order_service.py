@@ -61,3 +61,14 @@ async def optional_current_user(
         "id": int(user_id),
         "email": payload.get("email"),
     }
+
+async def current_user(
+    user=Depends(optional_current_user),
+):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user

@@ -46,6 +46,21 @@ async def add_cart_item(
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get(
+    "/orders/me",
+    response_model=list[OrderRead],
+    response_model_by_alias=True,
+)
+async def get_my_orders(
+    current_user=Depends(optional_current_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    dao = OrdersDAO(db)
+    orders = await dao.list_orders_by_user_id(current_user["id"])
+    return orders
 
 @router.get(
     "/cart/{sessionId}",

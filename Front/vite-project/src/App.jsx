@@ -6,6 +6,9 @@ import CatalogPage from "./pages/CatalogPage/CatalogPage";
 import ProductPage from "./pages/ProductPage/ProductPage";
 import CartPage from "./pages/CartPage/CartPage";
 import CheckoutPage from "./pages/CheckoutPage/CheckoutPage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import AccountPage from "./pages/AccountPage/AccountPage";
+import RegisterPage from "./pages/RegisterPage/RegisterPage";
 
 import AdminLoginPage from "./pages/AdminLoginPage/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage/AdminDashboardPage";
@@ -15,6 +18,8 @@ import AdminOrdersPage from "./pages/AdminOrdersPage/AdminOrdersPage";
 import AdminOrderDetailsPage from "./pages/AdminOrderDetailsPage/AdminOrderDetailsPage";
 import AdminCategoriesPage from "./pages/AdminCategoriesPage/AdminCategoriesPage";
 
+import RequireAuth from "./components/RequireAuth/RequireAuth";
+
 export default function App() {
   return (
     <Routes>
@@ -22,8 +27,26 @@ export default function App() {
       <Route path="/catalog" element={<CatalogPage />} />
       <Route path="/product/:id" element={<ProductPage />} />
       <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      <Route
+        path="/checkout"
+        element={
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/account"
+        element={
+          <RequireAuth>
+            <AccountPage />
+          </RequireAuth>
+        }
+      />
 
       <Route path="/admin" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
