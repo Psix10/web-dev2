@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
-
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.auth_router import router as admin_auth_router
 from api.api_admin import router as admin_router
@@ -23,6 +23,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Admin Service", lifespan=lifespan)
+
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 app.include_router(admin_auth_router)
 app.include_router(admin_router)

@@ -100,6 +100,7 @@ def require_permissions(*required_permissions: str):
     ) -> dict[str, Any]:
         user_permissions = set(payload.get("permissions", []))
 
+        
         missing_permissions = [
             permission
             for permission in required_permissions

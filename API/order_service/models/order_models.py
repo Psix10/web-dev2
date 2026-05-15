@@ -27,10 +27,12 @@ big_int_pk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
 
 
 class OrderStatus(str, Enum):
-    NEW = 'NEW'
-    PROCESSING = 'PROCESSING'
-    COMPLETED = 'COMPLETED'
-    CANCELLED = 'CANCELLED'
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    PROCESSING = "PROCESSING"
+    SHIPPED = "SHIPPED"
+    DELIVERED = "DELIVERED"
+    CANCELLED = "CANCELLED"
 
 
 class Cart(Base):
@@ -91,8 +93,8 @@ class Order(Base):
     status: Mapped[OrderStatus] = mapped_column(
         sa.Enum(OrderStatus, name="order_status"),
         nullable=False,
-        default=OrderStatus.NEW,
-        server_default=OrderStatus.NEW.value,
+        default=OrderStatus.PENDING,
+        server_default=OrderStatus.PENDING.value,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

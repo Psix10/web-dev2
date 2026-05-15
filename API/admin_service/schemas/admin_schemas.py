@@ -1,7 +1,7 @@
-# admin_service/schemas/admin_schemas.py
 from __future__ import annotations
 
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
@@ -24,11 +24,26 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class PermissionCreate(BaseModel):
+    code: str
+    description: str | None = None
+
+
 class PermissionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     code: str
+    description: str | None = None
+
+
+class RoleCreate(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class RoleUpdate(BaseModel):
+    name: str
     description: str | None = None
 
 
@@ -72,35 +87,3 @@ class AdminRead(BaseModel):
 
 class MeResponse(AdminRead):
     pass
-
-
-
-class PermissionCreate(BaseModel):
-    code: str
-    description: str | None = None
-
-
-class PermissionRead(BaseModel):
-    id: int
-    code: str
-    description: str | None = None
-
-    model_config = {"from_attributes": True}
-
-
-class RoleCreate(BaseModel):
-    name: str
-    description: str | None = None
-
-
-class RoleUpdate(BaseModel):
-    name: str
-    description: str | None = None
-
-class RoleRead(BaseModel):
-    id: int
-    name: str
-    description: str | None = None
-    permissions: list[PermissionRead] = []
-
-    model_config = ConfigDict(from_attributes=True)

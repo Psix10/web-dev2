@@ -1,5 +1,5 @@
-const PRODUCT_API_BASE_URL =
-    import.meta.env.VITE_PRODUCT_API_URL || "http://localhost:8001";
+
+const ADDRESS_API_BASE_URL = import.meta.env.VITE_ADDRESS_API_BASE_URL || 'http://localhost:8000';
 
 function formatErrorDetail(detail) {
     if (!detail) {
@@ -69,7 +69,7 @@ async function productFetch(path, options = {}) {
         body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${PRODUCT_API_BASE_URL}${path}`, {
+    const response = await fetch(`${ADDRESS_API_BASE_URL}${path}`, {
         ...options,
         headers,
         body,

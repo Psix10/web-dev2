@@ -3,14 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field, model_validator
 
 from models.order_models import OrderStatus
 
 
-# =========================
+
 # Cart items
-# =========================
 
 class CartItemBase(BaseModel):
     product_id: int = Field(alias="productId")
@@ -37,9 +36,8 @@ class CartItemRead(CartItemBase):
     cart_id: int = Field(alias="cartId")
 
 
-# =========================
+
 # Cart
-# =========================
 
 class CartBase(BaseModel):
     session_id: str = Field(alias="sessionId")
@@ -71,9 +69,8 @@ class CartRead(CartBase):
     items: list[CartItemRead] = []
 
 
-# =========================
+
 # Order items
-# =========================
 
 class OrderItemBase(BaseModel):
     product_id: int = Field(alias="productId")
@@ -98,9 +95,9 @@ class OrderItemRead(OrderItemBase):
     def line_total(self) -> Decimal:
         return self.price_snapshot * self.quantity
 
-# =========================
+
 # Orders
-# =========================
+
 
 class OrderBase(BaseModel):
     customer_name: str = Field(alias="customerName")
@@ -134,10 +131,7 @@ class OrderStatusUpdate(BaseModel):
     status: OrderStatus
 
 
-# =========================
 # Mutations
-# =========================
-
 class CartItemMutationResponse(BaseModel):
     id: int
     message: str
@@ -147,3 +141,31 @@ class OrderMutationResponse(BaseModel):
     id: int
     order_number: str = Field(alias="orderNumber")
     message: str
+
+
+# Admin order update
+class AdminOrderItemUpdate(BaseModel):
+    id: int | None = None
+    product_id: int | None = Field(default=None, alias="productId")
+    product_name_snapshot: str = Field(alias="productNameSnapshot", min_length=1, max_length=255)
+    price_snapshot: Decimal = Field(alias="priceSnapshot", ge=0)
+    quantity: int = Field(ge=1)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AdminOrderUpdate(BaseModel):
+    customer_name: str = Field(alias="customerName", min_length=1, max_length=255)
+    customer_phone: str = Field(alias="customerPhone", min_length=3, max_length=50)
+    customer_email: EmailStr = Field(alias="customerEmail")
+    delivery_address: str = Field(alias="deliveryAddress", min_length=3, max_length=500)
+    comment: str | None = None
+    items: list[AdminOrderItemUpdate]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def validate_items(self):
+        if not self.items:
+            raise ValueError("Заказ должен содержать хотя бы одну позицию")
+        return self

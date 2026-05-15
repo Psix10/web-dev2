@@ -1,4 +1,3 @@
-# admin_service/api/auth_router.py
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
@@ -12,8 +11,10 @@ from schemas.admin_schemas import (
 )
 from services.auth_service import AuthService
 
-
-router = APIRouter(prefix="/api/admin/auth", tags=["Admin Auth"])
+router = APIRouter(
+    prefix="/api/admin/auth",
+    tags=["Admin Auth"],
+)
 
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)

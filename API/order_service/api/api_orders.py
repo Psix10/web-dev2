@@ -218,3 +218,19 @@ async def patch_order_status(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/admin/orders/{id}",
+    response_model=OrderRead,
+    response_model_by_alias=True,
+    dependencies=[Depends(require_permissions("order:read_all"))],
+)
+async def get_admin_order(
+    id: int,
+    db: AsyncSession = Depends(get_session),
+):
+    dao = OrdersDAO(db)
+    order = await dao.get_order_by_id(id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order

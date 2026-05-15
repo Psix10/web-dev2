@@ -1,10 +1,24 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import style from "./AdminSidebar.module.css";
 
 export default function AdminSidebar() {
+  const { admin, logout } = useAdminAuth();
+  const navigate = useNavigate();
+
   const getLinkClass = ({ isActive }) =>
     isActive ? `${style.link} ${style.active}` : style.link;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/admin/login");
+    } catch (err) {
+      console.error('Logout error:', err);
+      navigate("/admin/login");
+    }
+  };
 
   return (
     <aside className={style.sidebar}>
@@ -31,12 +45,12 @@ export default function AdminSidebar() {
       </div>
 
       <div className={style.footer}>
-        <button type="button" className={style.logout}>
+        <button type="button" className={style.logout} onClick={handleLogout}>
           Выйти
         </button>
 
         <div className={style.profile}>
-          <span>Администратор</span>
+          <span>{admin?.email || 'Администратор'}</span>
           <Link to="/" className={style.openStore}>
             Открыть магазин
           </Link>

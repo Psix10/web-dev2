@@ -1,8 +1,6 @@
-from requests import session
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth_utils import now_utc
 from models.auth_models import (
     User,
     UserSession,
@@ -22,29 +20,6 @@ class AuthDAO:
             select(User).where(User.id == user_id)
         )
         return result.scalar_one_or_none()
-    
-    async def get_active_session_by_refresh_token_hash(
-    self,
-    refresh_token_hash: str,
-    ) -> UserSession | None:
-        result = await self.session.execute(
-            select(UserSession).where(
-                UserSession.refresh_token_hash == refresh_token_hash,
-                UserSession.revoked_at.is_(None),
-            )
-        )
-        return result.scalar_one_or_none()
-    
-    async def revoke_unused_verification_tokens(self, user_id: int, used_at) -> None:
-        await self.session.execute(
-            update(EmailVerification)
-            .where(
-                EmailVerification.user_id == user_id,
-                EmailVerification.used_at.is_(None),
-            )
-            .values(used_at=used_at)
-        )
-        await self.session.commit()
 
     async def get_user_by_email(self, email: str) -> User | None:
         result = await self.session.execute(
@@ -88,6 +63,28 @@ class AuthDAO:
         )
         await self.session.commit()
 
+    async def update_user(
+        self,
+        user_id: int,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        phone: str | None = None,
+    ) -> User | None:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return None
+
+        if first_name is not None:
+            user.first_name = first_name
+        if last_name is not None:
+            user.last_name = last_name
+        if phone is not None:
+            user.phone = phone
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
     # Sessions
 
     async def create_session(
@@ -121,8 +118,20 @@ class AuthDAO:
         )
         return result.scalar_one_or_none()
 
-    async def revoke_session(self, session_id: int, revoked_at) -> None:
+    async def get_active_session_by_refresh_token_hash(
+        self,
+        refresh_token_hash: str,
+    ) -> UserSession | None:
         result = await self.session.execute(
+            select(UserSession).where(
+                UserSession.refresh_token_hash == refresh_token_hash,
+                UserSession.revoked_at.is_(None),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def revoke_session(self, session_id: int, revoked_at) -> None:
+        await self.session.execute(
             update(UserSession)
             .where(UserSession.id == session_id)
             .values(revoked_at=revoked_at)
@@ -169,10 +178,25 @@ class AuthDAO:
         )
         return result.scalar_one_or_none()
 
-    async def mark_email_verification_as_used(self, verification_id: int, used_at) -> None:
+    async def mark_email_verification_as_used(
+        self,
+        verification_id: int,
+        used_at,
+    ) -> None:
         await self.session.execute(
             update(EmailVerification)
             .where(EmailVerification.id == verification_id)
+            .values(used_at=used_at)
+        )
+        await self.session.commit()
+
+    async def revoke_unused_verification_tokens(self, user_id: int, used_at) -> None:
+        await self.session.execute(
+            update(EmailVerification)
+            .where(
+                EmailVerification.user_id == user_id,
+                EmailVerification.used_at.is_(None),
+            )
             .values(used_at=used_at)
         )
         await self.session.commit()
@@ -213,26 +237,3 @@ class AuthDAO:
             .values(used_at=used_at)
         )
         await self.session.commit()
-    
-    async def update_user_profile(
-        self,
-        user_id: int,
-        first_name: str | None = None,
-        last_name: str | None = None,
-        phone: str | None = None,
-    ) -> User | None:
-
-        user = await self.get_user_by_id(user_id)
-        if not user:
-            return None
-
-        if first_name is not None:
-            user.first_name = first_name
-        if last_name is not None:
-            user.last_name = last_name
-        if phone is not None:
-            user.phone = phone
-
-        await self.session.commit()
-        await self.session.refresh(user)
-        return user

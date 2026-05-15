@@ -19,44 +19,100 @@ import AdminOrderDetailsPage from "./pages/AdminOrderDetailsPage/AdminOrderDetai
 import AdminCategoriesPage from "./pages/AdminCategoriesPage/AdminCategoriesPage";
 
 import RequireAuth from "./components/RequireAuth/RequireAuth";
+import AdminProtectedRoute from "./components/AdminProtectedRoute/AdminProtectedRoute";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/catalog" element={<CatalogPage />} />
-      <Route path="/product/:id" element={<ProductPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+    <AdminAuthProvider>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-      <Route
-        path="/checkout"
-        element={
-          <RequireAuth>
-            <CheckoutPage />
-          </RequireAuth>
-        }
-      />
+        <Route
+          path="/checkout"
+          element={
+            <RequireAuth>
+              <CheckoutPage />
+            </RequireAuth>
+          }
+        />
 
-      <Route
-        path="/account"
-        element={
-          <RequireAuth>
-            <AccountPage />
-          </RequireAuth>
-        }
-      />
+        <Route
+          path="/account"
+          element={
+            <RequireAuth>
+              <AccountPage />
+            </RequireAuth>
+          }
+        />
 
-      <Route path="/admin" element={<AdminLoginPage />} />
-      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-      <Route path="/admin/products" element={<AdminProductsPage />} />
-      <Route path="/admin/products/new" element={<AdminProductCreatePage />} />
-      <Route path="/admin/orders" element={<AdminOrdersPage />} />
-      <Route path="/admin/orders/:id" element={<AdminOrderDetailsPage />} />
-      <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminProtectedRoute>
+              <AdminDashboardPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/products"
+          element={
+            <AdminProtectedRoute>
+              <AdminProductsPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/products/new"
+          element={
+            <AdminProtectedRoute>
+              <AdminProductCreatePage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/products/:id/edit"
+          element={
+            <AdminProtectedRoute>
+              <AdminProductCreatePage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders"
+          element={
+            <AdminProtectedRoute>
+              <AdminOrdersPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders/:id"
+          element={
+            <AdminProtectedRoute>
+              <AdminOrderDetailsPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/categories"
+          element={
+            <AdminProtectedRoute>
+              <AdminCategoriesPage />
+            </AdminProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AdminAuthProvider>
   );
 }

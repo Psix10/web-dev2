@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from db.db import init_models
-from api.api_products import router as products_router
+from api.api_products import public_router, admin_router
 
 
 
@@ -27,8 +27,8 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(products_router)
-
+app.include_router(public_router)
+app.include_router(admin_router)
 
 @app.get("/health")
 def health():

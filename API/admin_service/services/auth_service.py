@@ -45,6 +45,7 @@ class AuthService:
             "role": admin.role.name,
             "permissions": permissions,
             "principal_type": "admin",
+            "type": "access",
         }
 
         access_token = self.token_service.create_access_token(access_payload)

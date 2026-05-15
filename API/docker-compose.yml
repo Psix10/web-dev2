@@ -108,6 +108,35 @@ services:
         condition: service_started
     volumes:
       - ./admin_service:/app
+  
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_PORT: 8000
+      AUTH_SERVICE_URL: http://auth_service:8004
+      PRODUCT_SERVICE_URL: http://product_service:8001
+      ORDER_SERVICE_URL: http://order_service:8002
+      ADMIN_SERVICE_URL: http://admin_service:8003
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      auth_service:
+        condition: service_started
+      product_service:
+        condition: service_started
+      order_service:
+        condition: service_started
+      admin_service:
+        condition: service_started
+    volumes:
+      - ./api_gateway:/app
 
 volumes:
   postgres_data:

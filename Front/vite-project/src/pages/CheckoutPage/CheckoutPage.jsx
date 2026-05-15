@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StoreLayout from "../../layouts/StoreLayout";
 import Breadcrumbs from "../../components/Breadcrumbs/Breadcrumbs";
@@ -7,6 +7,29 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { getUserAddresses } from "../../api/address";
 import { createOrder } from "../../api/order";
+
+function getAddressLabel(address) {
+  if (!address) return "";
+
+  return (
+    address.fullAddress ||
+    address.full_address ||
+    address.address ||
+    [
+      address.country,
+      address.region,
+      address.city,
+      address.street,
+      address.house,
+      address.building,
+      address.entrance ? `подъезд ${address.entrance}` : null,
+      address.floor ? `этаж ${address.floor}` : null,
+      address.apartment ? `кв. ${address.apartment}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ")
+  );
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -27,8 +50,10 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const selectedAddress = addresses.find(
-  (address) => address.id === selectedAddressId);
+
+  const selectedAddress = useMemo(() => {
+    return addresses.find((address) => Number(address.id) === Number(selectedAddressId)) || null;
+  }, [addresses, selectedAddressId]);
 
   useEffect(() => {
     setForm((prev) => ({
@@ -42,6 +67,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchAddresses = async () => {
       if (!isAuthenticated || !tokens?.access_token) {
+        setAddresses([]);
+        setSelectedAddressId(null);
         setUseSavedAddress(false);
         return;
       }
@@ -50,19 +77,24 @@ export default function CheckoutPage() {
 
       try {
         const data = await getUserAddresses(tokens.access_token);
-        const list = data || [];
+        const list = Array.isArray(data) ? data : [];
+
         setAddresses(list);
 
         if (list.length > 0) {
-          const defaultAddress = list.find((item) => item.isDefault) || list[0];
-          setSelectedAddressId(defaultAddress.id);
+          const defaultAddress =
+            list.find((item) => item.isDefault || item.is_default) || list[0];
+
+          setSelectedAddressId(defaultAddress?.id ?? null);
           setUseSavedAddress(true);
         } else {
+          setSelectedAddressId(null);
           setUseSavedAddress(false);
         }
       } catch (error) {
         console.error("Failed to load addresses:", error);
         setAddresses([]);
+        setSelectedAddressId(null);
         setUseSavedAddress(false);
       } finally {
         setAddressesLoading(false);
@@ -82,8 +114,25 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAddressModeChange = (useSaved) => {
+    setUseSavedAddress(useSaved);
+    setSubmitError("");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const normalizedForm = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      address: form.address.trim(),
+      comment: form.comment.trim(),
+    };
+
+    const resolvedDeliveryAddress = useSavedAddress
+      ? getAddressLabel(selectedAddress).trim()
+      : normalizedForm.address;
 
     if (!sessionId) {
       setSubmitError("Не найдена сессия корзины");
@@ -95,12 +144,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!form.name || !form.phone || !form.email) {
+    if (!normalizedForm.name || !normalizedForm.phone || !normalizedForm.email) {
       setSubmitError("Заполните данные покупателя");
       return;
     }
 
-    if (!useSavedAddress && !form.address.trim()) {
+    if (!useSavedAddress && !normalizedForm.address) {
       setSubmitError("Укажите адрес доставки");
       return;
     }
@@ -109,17 +158,20 @@ export default function CheckoutPage() {
       setSubmitError("Выберите сохранённый адрес");
       return;
     }
-    console.log("CART ITEMS:", items);
+
+    if (!resolvedDeliveryAddress) {
+      setSubmitError("Не удалось определить адрес доставки");
+      return;
+    }
+
     const payload = {
       sessionId,
-      customerName: form.name,
-      customerPhone: form.phone,
-      customerEmail: form.email,
-      comment: form.comment || null,
+      customerName: normalizedForm.name,
+      customerPhone: normalizedForm.phone,
+      customerEmail: normalizedForm.email,
+      comment: normalizedForm.comment || null,
       addressId: useSavedAddress ? selectedAddressId : null,
-      deliveryAddress: useSavedAddress
-        ? selectedAddress?.fullAddress || ""
-        : form.address,
+      deliveryAddress: resolvedDeliveryAddress,
       items: items.map((item) => ({
         productId: item.productId ?? item.id,
         productNameSnapshot: item.name,
@@ -127,6 +179,8 @@ export default function CheckoutPage() {
         quantity: item.quantity,
       })),
     };
+
+    console.log("CREATE ORDER PAYLOAD", payload);
 
     setSubmitting(true);
     setSubmitError("");
@@ -148,7 +202,10 @@ export default function CheckoutPage() {
         },
       });
     } catch (error) {
-      setSubmitError(error.message || "Не удалось оформить заказ");
+      console.error("CREATE ORDER FAILED:", error);
+      setSubmitError(
+        error.message || "Не удалось оформить заказ. Попробуйте ещё раз позже."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -226,7 +283,7 @@ export default function CheckoutPage() {
                             type="radio"
                             name="addressMode"
                             checked={useSavedAddress}
-                            onChange={() => setUseSavedAddress(true)}
+                            onChange={() => handleAddressModeChange(true)}
                           />
                           Выбрать сохранённый адрес
                         </label>
@@ -236,7 +293,7 @@ export default function CheckoutPage() {
                             type="radio"
                             name="addressMode"
                             checked={!useSavedAddress}
-                            onChange={() => setUseSavedAddress(false)}
+                            onChange={() => handleAddressModeChange(false)}
                           />
                           Ввести адрес вручную
                         </label>
@@ -254,7 +311,7 @@ export default function CheckoutPage() {
                           {addresses.map((address) => (
                             <option key={address.id} value={address.id}>
                               {address.label ? `${address.label} — ` : ""}
-                              {address.fullAddress}
+                              {getAddressLabel(address)}
                             </option>
                           ))}
                         </select>
@@ -267,6 +324,12 @@ export default function CheckoutPage() {
                           placeholder="Город, улица, дом, квартира"
                           required={!useSavedAddress}
                         />
+                      )}
+
+                      {useSavedAddress && selectedAddress && (
+                        <p className={style.helperText}>
+                          Выбранный адрес: {getAddressLabel(selectedAddress)}
+                        </p>
                       )}
                     </div>
                   )}

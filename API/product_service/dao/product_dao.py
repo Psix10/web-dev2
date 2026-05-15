@@ -1,5 +1,4 @@
-from typing import Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,23 +12,26 @@ class ProductsDAO:
     async def list_products(
         self,
         *,
-        category_id: Optional[int],
-        min_price: Optional[float],
-        max_price: Optional[float],
-        base_type: Optional[str],
-        wattage: Optional[int],
-        color_temperature: Optional[int],
+        category_id: int | None,
+        min_price: float | None,
+        max_price: float | None,
+        base_type: str | None,
+        wattage: int | None,
+        color_temperature: int | None,
         page: int,
         size: int,
+        only_active: bool = True,
     ) -> tuple[list[Product], int]:
         stmt = (
             select(Product)
             .options(
                 selectinload(Product.category),
                 selectinload(Product.images),
-            )            
-            .where(Product.is_active.is_(True))
+            )
         )
+
+        if only_active:
+            stmt = stmt.where(Product.is_active.is_(True))
 
         if category_id is not None:
             stmt = stmt.where(Product.category_id == category_id)
@@ -52,7 +54,7 @@ class ProductsDAO:
         items = list(result.all())
         return items, total
 
-    async def get_by_id(self, product_id: int) -> Optional[Product]:
+    async def get_by_id(self, product_id: int) -> Product | None:
         stmt = (
             select(Product)
             .where(Product.id == product_id)
@@ -60,7 +62,7 @@ class ProductsDAO:
         )
         return await self.session.scalar(stmt)
 
-    async def get_by_slug(self, slug: str) -> Optional[Product]:
+    async def get_by_slug(self, slug: str) -> Product | None:
         stmt = (
             select(Product)
             .where(Product.slug == slug)
@@ -98,6 +100,7 @@ class ProductsDAO:
                 )
 
         await self.session.flush()
+        await self.session.refresh(product)
         return product
 
     async def update_product(self, product: Product, data) -> Product:
@@ -113,7 +116,26 @@ class ProductsDAO:
         product.base_type = data.base_type
         product.color_temperature = data.color_temperature
         product.is_active = data.is_active
+
         await self.session.flush()
+
+        await self.session.execute(
+            delete(ProductImage).where(ProductImage.product_id == product.id)
+        )
+
+        if data.images:
+            for img in data.images:
+                self.session.add(
+                    ProductImage(
+                        product_id=product.id,
+                        image_url=img.image_url,
+                        sort_order=img.sort_order,
+                        is_main=img.is_main,
+                    )
+                )
+
+        await self.session.flush()
+        await self.session.refresh(product)
         return product
 
     async def set_status(self, product: Product, is_active: bool) -> Product:

@@ -1,10 +1,9 @@
-# admin_service/api/admin_router.py
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_current_admin, require_permissions
+from api.dependencies import get_current_admin, get_current_admin_payload, require_permissions
 from dao.admin_dao import AdminDAO
 from schemas.admin_schemas import (
     AdminCreate,
@@ -19,10 +18,10 @@ from schemas.admin_schemas import (
 )
 from db.db import get_session
 from models.admin_models import Admin
-from services.admin_utils import hash_password  # если у тебя там хеш
+from services.admin_utils import hash_password
 
 
-router = APIRouter(prefix="/api/admin", tags=["Admin"])
+router = APIRouter(prefix="/api/admin", tags=["Admin"], dependencies=[Depends(get_current_admin_payload)])
 
 
 @router.get("/me", response_model=MeResponse)

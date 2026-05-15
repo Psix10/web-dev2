@@ -16,6 +16,8 @@ ACCESS_AUDIENCE = "internal_api"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
+RESERVED_ACCESS_CLAIMS = {"sub", "type", "iss", "aud", "exp", "iat"}
+
 pwd_context = CryptContext(
     schemes=["argon2"],
     deprecated="auto",
@@ -30,21 +32,36 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
 
 
-def create_access_token(user_id: int, email: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+def create_access_token(
+    subject: str,
+    claims: dict | None = None,
+) -> str:
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
     payload = {
-        "sub": str(user_id),
-        "email": email,
+        "sub": subject,
         "type": "access",
         "iss": ISSUER,
         "aud": ACCESS_AUDIENCE,
+        "iat": now,
         "exp": expire,
     }
+
+    if claims:
+        filtered_claims = {
+            key: value
+            for key, value in claims.items()
+            if key not in RESERVED_ACCESS_CLAIMS
+        }
+        payload.update(filtered_claims)
+
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(user_id: int) -> tuple[str, datetime]:
-    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     token = secrets.token_urlsafe(64)
 
     payload = {
@@ -52,8 +69,10 @@ def create_refresh_token(user_id: int) -> tuple[str, datetime]:
         "type": "refresh",
         "jti": token,
         "iss": ISSUER,
+        "iat": now,
         "exp": expire,
     }
+
     refresh_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return refresh_token, expire
 

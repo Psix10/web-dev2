@@ -10,9 +10,9 @@ from schemas.auth_schemas import (
     RefreshResponse,
     LogoutRequest,
     UserRead,
+    UserProfileUpdate,
     MessageResponse,
 )
-from schemas.auth_schemas import UserProfileUpdate, UserRead
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -69,13 +69,13 @@ async def logout(
 async def get_me(current_user=Depends(get_current_active_user)):
     return current_user
 
+
 @router.patch("/me", response_model=UserRead)
 async def update_my_profile(
     payload: UserProfileUpdate,
-    current_user: dict = Depends(get_current_active_user),
+    current_user=Depends(get_current_active_user),
     auth_service: AuthService = Depends(get_auth_service),
 ):
-
     updated_user = await auth_service.update_user_profile(
         user_id=current_user.id,
         payload=payload,

@@ -1,7 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import style from "./AdminLoginPage.module.css";
 
 export default function AdminLoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAdminAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      navigate("/admin/dashboard");
+    } catch (err) {
+      setError(err.message || "Неверный email или пароль");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className={style.loginPage}>
       <div className={style.card}>
@@ -10,13 +34,29 @@ export default function AdminLoginPage() {
           <p className={style.subtitle}>Панель управления</p>
         </div>
 
-        <form className={style.form}>
+        <form className={style.form} onSubmit={handleSubmit}>
+          {error && (
+            <div style={{ 
+              padding: '12px', 
+              background: '#fee', 
+              color: '#c00', 
+              borderRadius: '4px',
+              marginBottom: '16px'
+            }}>
+              {error}
+            </div>
+          )}
+
           <div className={style.field}>
-            <label className={style.label}>Логин</label>
+            <label className={style.label}>Email</label>
             <input
-              type="text"
+              type="email"
               className="input"
-              defaultValue="admin"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="email"
             />
           </div>
 
@@ -25,16 +65,22 @@ export default function AdminLoginPage() {
             <input
               type="password"
               className="input"
-              defaultValue="admin123"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="current-password"
             />
           </div>
 
-          <button type="button" className={`btn btnPrimary ${style.submitButton}`}>
-            Войти
+          <button 
+            type="submit" 
+            className={`btn btnPrimary ${style.submitButton}`}
+            disabled={loading}
+          >
+            {loading ? "Вход..." : "Войти"}
           </button>
         </form>
-
-        <p className={style.demo}>Демо: admin / admin123</p>
       </div>
     </section>
   );

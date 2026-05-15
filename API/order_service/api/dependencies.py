@@ -9,9 +9,10 @@ from jose import JWTError, jwt
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_ADMIN_ISSUER = "admin_service"
+JWT_AUDIENCE = "internal_api"
 
 
 async def get_current_admin_payload(
@@ -21,23 +22,24 @@ async def get_current_admin_payload(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     token = credentials.credentials
 
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ADMIN_ISSUER,
+            audience=JWT_AUDIENCE,
+        )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
-
-    # ВАЖНО: смотрим на "type", как в TokenService
-    if payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token required",
+            detail="Invalid admin token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     if payload.get("principal_type") != "admin":
@@ -46,10 +48,18 @@ async def get_current_admin_payload(
             detail="Admin token required",
         )
 
+    if payload.get("token_type") != "admin_access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin access token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     if payload.get("sub") is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return payload
@@ -72,7 +82,7 @@ def require_permissions(*required_permissions: str):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Missing permissions: {', '.join(missing_permissions)}",
             )
-        
+
         return payload
 
     return permission_checker

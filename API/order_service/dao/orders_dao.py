@@ -1,4 +1,3 @@
-import random
 
 from decimal import Decimal
 from uuid import uuid4
@@ -7,14 +6,19 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from fastapi import HTTPException, status
 
 from models.order_models import Cart, CartItem, Order, OrderItem, OrderStatus
-from schemas.order_schemas import CartItemCreate, CartItemUpdate, OrderCreate
+from schemas.order_schemas import CartItemCreate, CartItemUpdate, OrderCreate, AdminOrderUpdate
 from models.address_models import UserAddress
 
 PRODUCT_SERVICE_URL = "http://product_service:8001/api/products"
 
-
+LOCKED_ORDER_EDIT_STATUSES = {
+    OrderStatus.SHIPPED,
+    OrderStatus.DELIVERED,
+    OrderStatus.CANCELLED,
+}
 class OrdersDAO:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -56,19 +60,19 @@ class OrdersDAO:
         )
         return await self.session.scalar(stmt)
     
-    async def _get_user_profile(self, user_id: int) -> dict | None:
-        result = await self.session.execute(
-            select(User).where(User.id == user_id)
-        )
-        user: User | None = result.scalar_one_or_none()
-        if user is None:
-            return None
+    # async def _get_user_profile(self, user_id: int) -> dict | None:
+    #     result = await self.session.execute(
+    #         select(User).where(User.id == user_id)
+    #     )
+    #     user: User | None = result.scalar_one_or_none()
+    #     if user is None:
+    #         return None
 
-        return {
-            "name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
-            "phone": user.phone,      
-            "email": user.email,      
-        }
+    #     return {
+    #         "name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
+    #         "phone": user.phone,      
+    #         "email": user.email,      
+    #     }
 
     async def get_or_create_cart(self, session_id: str, user_id: int | None = None) -> Cart:
         cart = await self.get_cart_by_session_id(session_id)
@@ -170,7 +174,7 @@ class OrdersDAO:
             comment=payload.comment,
             user_id=user_id,
             total_amount=total,
-            status=OrderStatus.NEW,
+            status=OrderStatus.PENDING,
         )
 
         self.session.add(order)
@@ -229,3 +233,56 @@ class OrdersDAO:
         )
         result = await self.session.scalars(stmt)
         return list(result.all())
+    
+    async def update_order_by_admin(self, order_id: int, payload: AdminOrderUpdate) -> Order:
+        order = await self.get_order_by_id(order_id)
+        if order is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заказ не найден",
+            )
+
+        if order.status in LOCKED_ORDER_EDIT_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Редактирование этого заказа запрещено на текущем статусе",
+            )
+
+        order.customer_name = payload.customer_name
+        order.customer_phone = payload.customer_phone
+        order.customer_email = payload.customer_email
+        order.delivery_address = payload.delivery_address
+        order.comment = payload.comment
+
+        for existing_item in list(order.items):
+            await self.session.delete(existing_item)
+
+        await self.session.flush()
+
+        total = Decimal("0.00")
+
+        for item in payload.items:
+            line_total = item.price_snapshot * item.quantity
+            total += line_total
+
+            new_item = OrderItem(
+                order_id=order.id,
+                product_id=item.product_id,
+                product_name_snapshot=item.product_name_snapshot,
+                price_snapshot=item.price_snapshot,
+                quantity=item.quantity,
+            )
+            self.session.add(new_item)
+
+        order.total_amount = total
+
+        await self.session.flush()
+
+        updated_order = await self.get_order_by_id(order.id)
+        if updated_order is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Не удалось загрузить обновлённый заказ",
+            )
+
+        return updated_order

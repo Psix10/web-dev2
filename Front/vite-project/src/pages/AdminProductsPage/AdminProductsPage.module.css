@@ -85,6 +85,10 @@
   font-weight: 700;
 }
 
+.statusInactive {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
 .actionsCell {
   display: flex;
   align-items: center;

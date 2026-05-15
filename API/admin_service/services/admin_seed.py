@@ -17,6 +17,7 @@ ROLE_DEFINITIONS = {
     "admin": "Administrator role",
 }
 
+
 PERMISSION_DEFINITIONS = {
     "catalog:read": "Read product catalog",
     "cart:write": "Manage cart",
@@ -24,14 +25,23 @@ PERMISSION_DEFINITIONS = {
     "order:read_own": "Read own orders",
     "order:read_all": "Read all orders",
     "order:update_status": "Update order status",
+
+    "product:read": "Read products in admin panel",
     "product:create": "Create products",
     "product:update": "Update products",
     "product:status": "Change product status",
+    "product:delete": "Delete products",
+
+    "category:read": "Read categories in admin panel",
     "category:create": "Create categories",
     "category:update": "Update categories",
+    "category:delete": "Delete categories",
+
     "admin:manage_users": "Manage admin users",
     "admin:manage_roles": "Manage roles and permissions",
+    "admin:manage_orders": "Manage orders (read/update status)",
 }
+
 
 ROLE_PERMISSIONS = {
     "user": {
@@ -47,9 +57,11 @@ ROLE_PERMISSIONS = {
         "order:read_own",
         "order:read_all",
         "order:update_status",
+        "product:read",
         "product:create",
         "product:update",
         "product:status",
+        "category:read",
     },
     "admin": {
         "catalog:read",
@@ -58,16 +70,20 @@ ROLE_PERMISSIONS = {
         "order:read_own",
         "order:read_all",
         "order:update_status",
+        "product:read",
         "product:create",
         "product:update",
         "product:status",
+        "product:delete",
+        "category:read",
         "category:create",
         "category:update",
+        "category:delete",
         "admin:manage_users",
         "admin:manage_roles",
+        "admin:manage_orders",
     },
 }
-
 
 
 async def seed_admin_data() -> None:
@@ -94,6 +110,7 @@ async def seed_admin_data() -> None:
             await db.commit()
 
         return
+
 
 async def seed_rbac(session: AsyncSession) -> None:
     role_map: dict[str, Role] = {}

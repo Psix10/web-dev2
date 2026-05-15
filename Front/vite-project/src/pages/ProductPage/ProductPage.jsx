@@ -66,6 +66,7 @@ export default function ProductPage() {
     const imageSrc = product.imageUrl ?? product.image ?? lampImage;
     const stockQuantity =
         product.stockQty ?? product.stock_quantity ?? product.stockQuantity ?? 0;
+    const isActive = product.isActive ?? product.is_active ?? false;
 
     const wattage = product.wattage ?? null;
     const voltage = product.voltage ?? null;
@@ -145,7 +146,11 @@ export default function ProductPage() {
                     <div className={style.priceRow}>
                     <span className={style.price}>{Number(product.price)} ₽</span>
                     <span className={style.stock}>
-                        В наличии: {stockQuantity} шт.
+                        {!isActive ? (
+                            <span style={{ color: "#c00" }}>Снят с продажи</span>
+                        ) : (
+                            `В наличии: ${stockQuantity} шт.`
+                        )}
                     </span>
                     </div>
 
@@ -155,7 +160,7 @@ export default function ProductPage() {
                         type="button"
                         className={style.counterButton}
                         onClick={handleDecrease}
-                        disabled={quantity <= 1}
+                        disabled={quantity <= 1 || !isActive}
                         >
                         −
                         </button>
@@ -166,7 +171,7 @@ export default function ProductPage() {
                         type="button"
                         className={style.counterButton}
                         onClick={handleIncrease}
-                        disabled={stockQuantity === 0 || quantity >= stockQuantity}
+                        disabled={stockQuantity === 0 || quantity >= stockQuantity || !isActive}
                         >
                         +
                         </button>
@@ -176,7 +181,7 @@ export default function ProductPage() {
                         type="button"
                         className="btn btnPrimary"
                         onClick={handleAddToCart}
-                        disabled={stockQuantity === 0}
+                        disabled={stockQuantity === 0 || !isActive}
                     >
                         {stockQuantity > 0 ? "Добавить в корзину" : "Нет в наличии"}
                     </button>

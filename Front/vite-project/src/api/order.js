@@ -1,4 +1,4 @@
-const ORDER_API_BASE_URL = "http://localhost:8002";
+const ADDRESS_API_BASE_URL = import.meta.env.VITE_ADDRESS_API_BASE_URL || 'http://localhost:8000';
 
 function formatErrorDetail(detail) {
     if (!detail) {
@@ -54,9 +54,9 @@ function formatErrorDetail(detail) {
     }
 
     return "Произошла ошибка запроса";
-}
+    }
 
-async function orderFetch(path, options = {}) {
+    async function orderFetch(path, options = {}) {
     const headers = {
         ...(options.headers || {}),
     };
@@ -68,7 +68,7 @@ async function orderFetch(path, options = {}) {
         body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${ORDER_API_BASE_URL}${path}`, {
+    const response = await fetch(`${ADDRESS_API_BASE_URL}${path}`, {
         ...options,
         headers,
         body,
@@ -83,11 +83,30 @@ async function orderFetch(path, options = {}) {
     }
 
     if (!response.ok) {
-        const message =
-        formatErrorDetail(data?.detail) ||
-        data?.message ||
-        response.statusText ||
-        "Request failed";
+        let message;
+
+        // Для 5xx ошибок показываем дружелюбное сообщение
+        if (response.status >= 500) {
+        console.error("SERVER ERROR:", {
+            status: response.status,
+            url: `${ADDRESS_API_BASE_URL}${path}`,
+            detail: data?.detail,
+            data,
+        });
+        message = "Ошибка сервера. Попробуйте ещё раз позже.";
+        } else if (response.status === 422) {
+        message = formatErrorDetail(data?.detail) || "Некорректные данные запроса";
+        } else if (response.status === 401) {
+        message = "Необходимо войти в систему";
+        } else if (response.status === 403) {
+        message = "Недостаточно прав для выполнения действия";
+        } else {
+        message =
+            formatErrorDetail(data?.detail) ||
+            data?.message ||
+            response.statusText ||
+            "Request failed";
+        }
 
         const error = new Error(message);
         error.status = response.status;
@@ -99,22 +118,17 @@ async function orderFetch(path, options = {}) {
 }
 
 export function createOrder(payload, accessToken = null) {
-    const headers = accessToken
-        ? { Authorization: `Bearer ${accessToken}` }
-        : {};
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
     return orderFetch("/api/orders", {
         method: "POST",
         headers,
         body: payload,
     });
-    }
-
+}
 
 export function getMyOrders(accessToken) {
-    const headers = accessToken
-        ? { Authorization: `Bearer ${accessToken}` }
-        : {};
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 
     return orderFetch("/api/orders/me", {
         method: "GET",

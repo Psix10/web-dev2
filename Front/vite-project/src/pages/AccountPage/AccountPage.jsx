@@ -9,16 +9,16 @@ import { getMyOrders } from "../../api/order";
 import { updateMyProfile } from "../../api/auth";
 
 const initialAddressForm = {
-  label: "",
-  city: "",
-  street: "",
-  house: "",
-  apartment: "",
-  entrance: "",
-  floor: "",
-  intercom: "",
-  comment: "",
-  isDefault: false,
+    label: "",
+    city: "",
+    street: "",
+    house: "",
+    apartment: "",
+    entrance: "",
+    floor: "",
+    intercom: "",
+    comment: "",
+    isDefault: false,
 };
 
 export default function AccountPage() {
@@ -248,19 +248,23 @@ export default function AccountPage() {
         }
     };
 
-    const formatOrderStatus = (status) => {
-        switch (status) {
-        case "NEW":
-            return "Новый";
-        case "PROCESSING":
-            return "В обработке";
-        case "COMPLETED":
-            return "Доставлен";
-        case "CANCELLED":
-            return "Отменён";
-        default:
-            return status || "—";
-        }
+    const LEGACY_TO_CURRENT_STATUS = {
+        NEW: "PENDING",
+        COMPLETED: "DELIVERED",
+    };
+
+    const ORDER_STATUS_LABELS = {
+        PENDING: "Новый",
+        CONFIRMED: "Подтверждён",
+        PROCESSING: "В обработке",
+        SHIPPED: "Отправлен",
+        DELIVERED: "Доставлен",
+        CANCELLED: "Отменён",
+    };
+
+    const getStatusLabel = (status) => {
+        const normalizedStatus = LEGACY_TO_CURRENT_STATUS[status] || status;
+        return ORDER_STATUS_LABELS[normalizedStatus] || normalizedStatus || "—";
     };
 
     return (
@@ -581,7 +585,7 @@ export default function AccountPage() {
                                     : style.statusProcessing
                                 }`}
                                 >
-                                {formatOrderStatus(order.status)}
+                                {getStatusLabel(order.status)}
                                 </span>
                             </div>
 

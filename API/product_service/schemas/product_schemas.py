@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -43,10 +42,10 @@ class ProductDetail(BaseModel):
     description: str
     price: float
     stock_quantity: int = Field(alias="stockQty")
-    wattage: int
-    voltage: int
-    base_type: str = Field(alias="baseType")
-    color_temperature: int = Field(alias="colorTemperature")
+    wattage: int | None = None
+    voltage: int | None = None
+    base_type: str | None = Field(default=None, alias="baseType")
+    color_temperature: int | None = Field(default=None, alias="colorTemperature")
     is_active: bool = Field(alias="isActive")
     images: list[ProductImageOut] = []
 
@@ -65,12 +64,12 @@ class ProductCreate(BaseModel):
     description: str
     price: float
     stock_quantity: int
-    wattage: int
-    voltage: int
-    base_type: str
-    color_temperature: int
+    wattage: int | None = None
+    voltage: int | None = None
+    base_type: str | None = None
+    color_temperature: int | None = None
     is_active: bool = True
-    images: Optional[list[ProductCreateImage]] = None
+    images: list[ProductCreateImage] | None = None
 
 
 class ProductUpdate(BaseModel):
@@ -81,11 +80,12 @@ class ProductUpdate(BaseModel):
     description: str
     price: float
     stock_quantity: int
-    wattage: int
-    voltage: int
-    base_type: str
-    color_temperature: int
+    wattage: int | None = None
+    voltage: int | None = None
+    base_type: str | None = None
+    color_temperature: int | None = None
     is_active: bool
+    images: list[ProductCreateImage] | None = None
 
 
 class ProductStatusUpdate(BaseModel):
@@ -103,18 +103,19 @@ class CategoryOut(BaseModel):
     id: int
     name: str
     slug: str
+    description: str | None = None
     is_active: bool = Field(alias="isActive")
 
 
 class CategoryCreate(BaseModel):
     name: str
     slug: str
-    description: Optional[str] = None
+    description: str | None = None
     is_active: bool = True
 
 
 class CategoryUpdate(BaseModel):
     name: str
     slug: str
-    description: Optional[str] = None
+    description: str | None = None
     is_active: bool

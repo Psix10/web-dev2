@@ -1,82 +1,78 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AdminLayout from "../../layouts/AdminLayout";
+import { useAdminAuth } from "../../context/AdminAuthContext";
+import { getProducts, deleteProduct } from "../../api/admin";
 import style from "./AdminProductsPage.module.css";
 
-const products = [
-  {
-    name: "LED Лампа A60 Econom",
-    sku: "LED-A60-9W-E27",
-    category: "Светодиодные лампы",
-    price: "89 ₽",
-    stock: "245",
-    status: "Активен",
-  },
-  {
-    name: "LED Лампа GU10 Spot 7W",
-    sku: "LED-GU10-7W",
-    category: "Светодиодные лампы",
-    price: "129 ₽",
-    stock: "120",
-    status: "Активен",
-  },
-  {
-    name: "LED Трубка T8 18W 1200мм",
-    sku: "LED-T8-18W-1200",
-    category: "Светодиодные лампы",
-    price: "249 ₽",
-    stock: "78",
-    status: "Активен",
-  },
-  {
-    name: "Philips Master LEDlamp 12W",
-    sku: "PHILIPS-12W-E27",
-    category: "Светодиодные лампы",
-    price: "349 ₽",
-    stock: "54",
-    status: "Активен",
-  },
-  {
-    name: "Люминесцентная TL5 28W",
-    sku: "LUM-TL5-28W",
-    category: "Люминесцентные",
-    price: "189 ₽",
-    stock: "33",
-    status: "Активен",
-  },
-  {
-    name: "Галогенная MR16 50W",
-    sku: "HAL-MR16-50W",
-    category: "Галогенные",
-    price: "69 ₽",
-    stock: "180",
-    status: "Активен",
-  },
-  {
-    name: "Умная лампа RGB Wi‑Fi E27 10W",
-    sku: "SMART-RGB-E27-10W",
-    category: "Умные лампы",
-    price: "799 ₽",
-    stock: "67",
-    status: "Активен",
-  },
-  {
-    name: "Промышленный прожектор LED 100W",
-    sku: "IND-LED-100W",
-    category: "Промышленные",
-    price: "2 490 ₽",
-    stock: "12",
-    status: "Активен",
-  },
-];
-
 export default function AdminProductsPage() {
+  const { accessToken } = useAdminAuth();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await getProducts(accessToken);
+        setProducts(data);
+      } catch (err) {
+        setError("Ошибка загрузки товаров");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [accessToken]);
+
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <AdminLayout title="Товары">
+        <p>Загрузка...</p>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Товары">
+        <p style={{ color: 'red' }}>{error}</p>
+      </AdminLayout>
+    );
+  }
+
+  const handleDelete = async (productId) => {
+  const confirmed = window.confirm("Удалить этот товар?");
+  if (!confirmed) return;
+
+  try {
+      await deleteProduct(accessToken, productId);
+      setProducts((prev) => prev.filter((product) => product.id !== productId));
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось удалить товар");
+    }
+  };
+  
   return (
     <AdminLayout title="Товары">
       <div className={style.page}>
         <div className={style.actions}>
-          <button type="button" className="btn btnPrimary">
-            + Добавить товар
-          </button>
+          <Link to="/admin/products/new">
+            <button type="button" className="btn btnPrimary">
+              + Добавить товар
+            </button>
+          </Link>
         </div>
 
         <div className={`${style.filtersCard} card`}>
@@ -84,6 +80,8 @@ export default function AdminProductsPage() {
             type="text"
             className={`input ${style.searchInput}`}
             placeholder="Поиск по названию..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
@@ -103,28 +101,44 @@ export default function AdminProductsPage() {
               </thead>
 
               <tbody>
-                {products.map((product) => (
-                  <tr key={product.sku}>
-                    <td className={style.productName}>{product.name}</td>
-                    <td className={style.sku}>{product.sku}</td>
-                    <td>{product.category}</td>
-                    <td className={style.price}>{product.price}</td>
-                    <td>{product.stock}</td>
-                    <td>
-                      <span className={style.status}>{product.status}</span>
-                    </td>
-                    <td>
-                      <div className={style.actionsCell}>
-                        <button type="button" className={style.iconButton}>
-                          ✏
-                        </button>
-                        <button type="button" className={style.iconButton}>
-                          🗑
-                        </button>
-                      </div>
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '24px' }}>
+                      Товары не найдены
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredProducts.map((product) => (
+                    <tr key={product.id}>
+                      <td className={style.productName}>{product.name}</td>
+                      <td className={style.sku}>{product.sku}</td>
+                      <td>{product.category || '—'}</td>
+                      <td className={style.price}>{product.price} ₽</td>
+                      <td>{product.stockQty ?? product.stock_quantity ?? 0}</td>
+                      <td>
+                        <span
+                          className={`${style.status} ${
+                            !(product.isActive ?? product.is_active) ? style.statusInactive : ""
+                          }`}
+                        >
+                          {product.isActive ?? product.is_active ? "Активен" : "Неактивен"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={style.actionsCell}>
+                          <Link to={`/admin/products/${product.id}/edit`}>
+                            <button type="button" className={style.iconButton}>
+                              ✏
+                            </button>
+                          </Link>
+                          <button type="button" className={style.iconButton} onClick={() => handleDelete(product.id)}>
+                            🗑
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

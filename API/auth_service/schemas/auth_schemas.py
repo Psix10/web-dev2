@@ -8,11 +8,7 @@ class UserBase(BaseModel):
     phone: str | None = Field(default=None, max_length=50)
 
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    first_name: str | None = Field(default=None, max_length=100)
-    last_name: str | None = Field(default=None, max_length=100)
-    phone: str | None = Field(default=None, max_length=50)
+class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
     confirm_password: str = Field(min_length=8, max_length=128)
 
@@ -90,11 +86,9 @@ class MessageResponse(BaseModel):
     message: str
 
 
-
 class UserProfileUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    phone: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    first_name: str | None = Field(default=None, max_length=100)
+    last_name: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=50)

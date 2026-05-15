@@ -115,26 +115,50 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.statusPending {
+  background: rgba(59, 130, 246, 0.10);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+.statusConfirmed {
+  background: rgba(8, 145, 178, 0.12);
+  color: #0f766e;
+  border-color: rgba(8, 145, 178, 0.2);
 }
 
 .statusProcessing {
-  background-color: rgba(245, 158, 11, 0.14);
-  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.22);
 }
 
-.statusNew {
-  background-color: rgba(47, 109, 246, 0.12);
-  color: #1d4ed8;
+.statusShipped {
+  background: rgba(124, 58, 237, 0.10);
+  color: #6d28d9;
+  border-color: rgba(124, 58, 237, 0.18);
 }
 
-.statusSent {
-  background-color: rgba(34, 197, 94, 0.12);
-  color: #15803d;
+.statusDelivered {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.statusCancelled {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 .lowStockTitle {

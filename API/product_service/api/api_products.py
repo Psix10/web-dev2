@@ -2,10 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from db.db import get_session
 from dao.product_dao import ProductsDAO
-from api.dependencies import get_current_user_email, get_current_user_id
+from api.dependencies import require_permissions
 from models.product_models import Product, Category
 from schemas.product_schemas import (
     ProductListResponse,
@@ -20,10 +19,12 @@ from schemas.product_schemas import (
 )
 
 
-router = APIRouter(prefix="/api", tags=["products"])
+
+# PUBLIC ROUTER
+public_router = APIRouter(prefix="/api", tags=["products"])
 
 
-@router.get("/products", response_model=ProductListResponse, response_model_by_alias=True)
+@public_router.get("/products", response_model=ProductListResponse, response_model_by_alias=True)
 async def get_products(
     category: int | None = Query(None),
     min_price: float | None = Query(None),
@@ -45,6 +46,7 @@ async def get_products(
         color_temperature=color_temperature,
         page=page,
         size=size,
+        only_active=True,
     )
 
     items = []
@@ -75,7 +77,8 @@ async def get_products(
         "total": total,
     }
 
-@router.get("/products/{product_id}", response_model=ProductDetail, response_model_by_alias=True)
+
+@public_router.get("/products/{product_id}", response_model=ProductDetail, response_model_by_alias=True)
 async def get_product_by_id(
     product_id: int,
     session: AsyncSession = Depends(get_session),
@@ -87,7 +90,7 @@ async def get_product_by_id(
     return product
 
 
-@router.get("/products/slug/{slug}", response_model=ProductDetail, response_model_by_alias=True)
+@public_router.get("/products/slug/{slug}", response_model=ProductDetail, response_model_by_alias=True)
 async def get_product_by_slug(
     slug: str,
     session: AsyncSession = Depends(get_session),
@@ -99,18 +102,143 @@ async def get_product_by_slug(
     return product
 
 
-@router.get("/categories", response_model=list[CategoryOut], response_model_by_alias=True)
+@public_router.get("/categories", response_model=list[CategoryOut], response_model_by_alias=True)
 async def get_categories(session: AsyncSession = Depends(get_session)):
     stmt = select(Category).where(Category.is_active.is_(True))
     result = await session.scalars(stmt)
     return list(result.all())
 
 
-@router.post("/admin/products", response_model=ProductMutationResponse, status_code=status.HTTP_201_CREATED)
+
+# ADMIN ROUTER
+admin_router = APIRouter(
+    prefix="/api/admin",
+    tags=["admin-products"],
+)
+
+
+@admin_router.get(
+    "/products",
+    response_model=list[dict],
+    dependencies=[Depends(require_permissions("product:read"))],
+)
+async def get_admin_products(
+    session: AsyncSession = Depends(get_session),
+):
+    dao = ProductsDAO(session)
+    products, _ = await dao.list_products(
+        category_id=None,
+        min_price=None,
+        max_price=None,
+        base_type=None,
+        wattage=None,
+        color_temperature=None,
+        page=1,
+        size=1000,
+        only_active=False,
+    )
+
+    items = []
+    for product in products:
+        category_name = product.category.name if product.category else None
+
+        main_image = next(
+            (image for image in product.images if image.is_main),
+            product.images[0] if product.images else None,
+        )
+
+        items.append({
+            "id": product.id,
+            "sku": product.sku,
+            "name": product.name,
+            "slug": product.slug,
+            "price": float(product.price),
+            "stockQty": product.stock_quantity,
+            "stock_quantity": product.stock_quantity,
+            "isActive": product.is_active,
+            "is_active": product.is_active,
+            "category": category_name,
+            "categoryId": product.category_id,
+            "category_id": product.category_id,
+            "imageUrl": main_image.image_url if main_image else None,
+            "image_url": main_image.image_url if main_image else None,
+            "description": product.description,
+            "wattage": product.wattage,
+            "voltage": product.voltage,
+            "baseType": product.base_type,
+            "base_type": product.base_type,
+            "colorTemperature": product.color_temperature,
+            "color_temperature": product.color_temperature,
+        })
+
+    return items
+
+
+@admin_router.get(
+    "/products/{product_id}",
+    response_model=dict,
+    dependencies=[Depends(require_permissions("product:read"))],
+)
+async def get_admin_product_by_id(
+    product_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    dao = ProductsDAO(session)
+    product = await dao.get_by_id(product_id)
+
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    main_image = next(
+        (image for image in product.images if image.is_main),
+        product.images[0] if product.images else None,
+    )
+
+    return {
+        "id": product.id,
+        "sku": product.sku,
+        "name": product.name,
+        "slug": product.slug,
+        "price": float(product.price),
+        "stockQty": product.stock_quantity,
+        "stock_quantity": product.stock_quantity,
+        "isActive": product.is_active,
+        "is_active": product.is_active,
+        "categoryId": product.category_id,
+        "category_id": product.category_id,
+        "imageUrl": main_image.image_url if main_image else None,
+        "image_url": main_image.image_url if main_image else None,
+        "description": product.description,
+        "wattage": product.wattage,
+        "voltage": product.voltage,
+        "baseType": product.base_type,
+        "base_type": product.base_type,
+        "colorTemperature": product.color_temperature,
+        "color_temperature": product.color_temperature,
+    }
+
+
+@admin_router.get(
+    "/categories",
+    response_model=list[CategoryOut],
+    response_model_by_alias=True,
+    dependencies=[Depends(require_permissions("category:read"))],
+)
+async def get_admin_categories(session: AsyncSession = Depends(get_session)):
+    stmt = select(Category)
+    result = await session.scalars(stmt)
+    return list(result.all())
+
+
+@admin_router.post(
+    "/products",
+    response_model=ProductMutationResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions("product:create"))],
+)
 async def create_product(
     payload: ProductCreate,
     session: AsyncSession = Depends(get_session),
-    
 ):
     dao = ProductsDAO(session)
     product = await dao.create_product(payload)
@@ -118,7 +246,11 @@ async def create_product(
     return {"id": product.id, "message": "Product created"}
 
 
-@router.put("/admin/products/{product_id}", response_model=ProductMutationResponse)
+@admin_router.put(
+    "/products/{product_id}",
+    response_model=ProductMutationResponse,
+    dependencies=[Depends(require_permissions("product:update"))],
+)
 async def update_product(
     product_id: int,
     payload: ProductUpdate,
@@ -133,7 +265,11 @@ async def update_product(
     return {"id": product.id, "message": "Product updated"}
 
 
-@router.patch("/admin/products/{product_id}/status", response_model=ProductMutationResponse)
+@admin_router.patch(
+    "/products/{product_id}/status",
+    response_model=ProductMutationResponse,
+    dependencies=[Depends(require_permissions("product:status"))],
+)
 async def change_product_status(
     product_id: int,
     payload: ProductStatusUpdate,
@@ -148,7 +284,11 @@ async def change_product_status(
     return {"id": product.id, "message": "Status changed"}
 
 
-@router.delete("/admin/products/{product_id}", response_model=ProductMutationResponse)
+@admin_router.delete(
+    "/products/{product_id}",
+    response_model=ProductMutationResponse,
+    dependencies=[Depends(require_permissions("product:delete"))],
+)
 async def delete_product(
     product_id: int,
     session: AsyncSession = Depends(get_session),
@@ -161,7 +301,12 @@ async def delete_product(
     return {"message": "Product deleted", "id": product_id}
 
 
-@router.post("/admin/categories", response_model=ProductMutationResponse, status_code=status.HTTP_201_CREATED)
+@admin_router.post(
+    "/categories",
+    response_model=ProductMutationResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions("category:create"))],
+)
 async def create_category(
     payload: CategoryCreate,
     session: AsyncSession = Depends(get_session),
@@ -177,7 +322,11 @@ async def create_category(
     return {"id": category.id, "message": "Category created"}
 
 
-@router.put("/admin/categories/{category_id}", response_model=ProductMutationResponse)
+@admin_router.put(
+    "/categories/{category_id}",
+    response_model=ProductMutationResponse,
+    dependencies=[Depends(require_permissions("category:update"))],
+)
 async def update_category(
     category_id: int,
     payload: CategoryUpdate,
@@ -196,12 +345,18 @@ async def update_category(
     return {"id": category.id, "message": "Category updated"}
 
 
-@router.get("/my-debug")
-async def my_debug_info(
-    user_id: int = Depends(get_current_user_id),
-    email: str = Depends(get_current_user_email),
+@admin_router.delete(
+    "/categories/{category_id}",
+    response_model=ProductMutationResponse,
+    dependencies=[Depends(require_permissions("category:delete"))],
+)
+async def delete_category(
+    category_id: int,
+    session: AsyncSession = Depends(get_session),
 ):
-    return {
-        "user_id": user_id,
-        "email": email,
-    }
+    category = await session.get(Category, category_id)
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    await session.delete(category)
+    await session.commit()
+    return {"message": "Category deleted", "id": category_id}

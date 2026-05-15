@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8004";
+const ADDRESS_API_BASE_URL = import.meta.env.VITE_ADDRESS_API_BASE_URL || 'http://localhost:8000';
 
 function formatErrorDetail(detail) {
     if (!detail) {
@@ -68,7 +68,7 @@ export async function apiFetch(path, options = {}) {
         body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${ADDRESS_API_BASE_URL}${path}`, {
         ...options,
         headers,
         body,
